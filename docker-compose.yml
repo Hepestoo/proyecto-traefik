@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  # ---------------------------------------
+  # 1. TRAEFIK
+  # ---------------------------------------
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: always
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      # Resolver
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=grupo7@gmail.com" # <--- Poner email del grupo
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - traefik-public
+
+  # ---------------------------------------
+  # 2. APP DEL GRUPO 7
+  # ---------------------------------------
+  grupo-7:
+    build: .
+    container_name: grupo-7-app 
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      
+      # ROUTER (Reglas de dominio)
+      # OJO: ¿Tu subdominio también será 'grupo-7'? Si es así, deja esto:
+      - "traefik.http.routers.grupo-7.rule=Host(`grupo-7.byronrm.com`)" 
+      - "traefik.http.routers.grupo-7.entrypoints=websecure"
+      - "traefik.http.routers.grupo-7.tls.certresolver=myresolver"
+      
+      # SERVICIO
+      # Nota como cambié 'angel' por 'grupo-7' en el nombre del servicio interno
+      - "traefik.http.services.grupo-7.loadbalancer.server.port=5000" 
+    networks:
+      - traefik-public
+
+networks:
+  traefik-public:
+    driver: bridge

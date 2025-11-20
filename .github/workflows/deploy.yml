@@ -1,0 +1,33 @@
+name: Despliegue Automático Grupo 7
+
+# Se activa cuando haces push a la rama 'main' (o 'master')
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Obtener el código
+      uses: actions/checkout@v3
+
+    - name: Desplegar en Servidor Contabo via SSH
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_IP }}     # IP del servidor (guardada en secretos)
+        username: ${{ secrets.SERVER_USER }} # Usuario (usualmente 'root')
+        password: ${{ secrets.SERVER_PASSWORD }} # Tu contraseña de acceso al servidor
+        # key: ${{ secrets.SSH_PRIVATE_KEY }} # Opción alternativa si usas llave SSH en lugar de contraseña
+        script: |
+          # 1. Ir a la carpeta del proyecto (asegúrate que el nombre coincida)
+          cd grupo7-traefik
+
+          # 2. Descargar los últimos cambios de GitHub
+          git pull origin main
+
+          # 3. Reconstruir y reiniciar contenedores
+          docker-compose up -d --build

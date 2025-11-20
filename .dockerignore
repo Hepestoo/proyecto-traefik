@@ -1,0 +1,6 @@
+.git
+pycache
+letsencrypt
+docker-compose.yml
+.vscode
+venv
